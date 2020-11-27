@@ -3,7 +3,7 @@ import { shell } from 'execa'
 import log from '@/helpers/log'
 
 /**
- * Update version number in files which need version number
+ * update version number in files which need version number
  */
 export default version => new Promise(async (resolve, reject) => {
   log.info('Updating version...')

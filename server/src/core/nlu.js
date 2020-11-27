@@ -1,6 +1,6 @@
 'use strict'
 
-import { NlpManager } from 'node-nlp'
+import { LogisticRegressionClassifier } from 'natural'
 import request from 'superagent'
 import fs from 'fs'
 
@@ -28,31 +28,28 @@ class Nlu {
         log.title('NLU')
         reject({ type: 'warning', obj: new Error('The expressions classifier does not exist, please run: npm run train expressions') })
       } else {
-        log.title('NLU')
+        LogisticRegressionClassifier.load(classifierFile, null, (err, classifier) => {
+          log.title('NLU')
 
-        try {
-          const data = fs.readFileSync(classifierFile, 'utf8')
-          const manager = new NlpManager()
-
-          manager.import(data)
-          this.classifier = manager
-
-          log.success('Classifier loaded')
-          resolve()
-        } catch (err) {
-          this.brain.talk(`${this.brain.wernicke('random_errors')}! ${this.brain.wernicke('errors', 'nlu', { '%error%': err.message })}.`)
-          this.brain.socket.emit('is-typing', false)
-
-          reject({ type: 'error', obj: err })
-        }
+          /* istanbul ignore if */
+          if (err) {
+            this.brain.talk(`${this.brain.wernicke('random_errors')}! ${this.brain.wernicke('errors', 'nlu', { '%error%': err.message })}.`)
+            this.brain.socket.emit('is-typing', false)
+            reject({ type: 'error', obj: err })
+          } else {
+            this.classifier = classifier
+            this.classifier.train()
+            log.success('Classifier loaded')
+            resolve()
+          }
+        })
       }
     })
   }
 
   /**
-   * Classify the query,
-   * pick-up the right classification
-   * and extract entities
+   * Classify the query
+   * and pick-up the right classification
    */
   async process (query) {
     log.title('NLU')
@@ -69,17 +66,16 @@ class Nlu {
       return false
     }
 
-    const result = await this.classifier.process(langs[process.env.LEON_LANG].short, query)
-    const { intent, score, entities } = result
-    const packageName = intent.substr(0, intent.indexOf(':'))
-    const moduleName = intent.substr(intent.indexOf(':') + 1)
+    const result = this.classifier.classify(query)
+    const packageName = result.substr(0, result.indexOf(':'))
+    const moduleName = result.substr(result.indexOf(':') + 1)
+    const classifications = this.classifier.getClassifications(query)
     let obj = {
       query,
-      entities,
       classification: {
         package: packageName,
         module: moduleName,
-        confidence: score
+        confidence: classifications[0].value
       }
     }
 
@@ -98,7 +94,7 @@ class Nlu {
         .catch(() => { /* */ })
     }
 
-    if (intent === 'None') {
+    if (obj.classification.confidence <= 0.5) {
       const fallback = Nlu.fallback(obj, langs[process.env.LEON_LANG].fallbacks)
 
       if (fallback === false) {
@@ -121,7 +117,7 @@ class Nlu {
       await this.brain.execute(obj)
     } catch (e) {
       /* istanbul ignore next */
-      log[e.type](e.obj.message)
+      log[e.type](e.obj.message || e.obj)
     }
 
     return true

@@ -90,7 +90,7 @@ describe('server', () => {
 
       setTimeout(() => {
         ee.emit('query', { client: 'jest', value: 'Hello' })
-        expect(['NLU', 'SOCKET']).toContain(console.log.mock.calls[0][1])
+        expect(console.log.mock.calls[0][1]).toBe('NLU')
         console.log = jest.fn()
 
         ee.emit('recognize', { })

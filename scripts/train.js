@@ -1,4 +1,4 @@
-import { NlpManager } from 'node-nlp'
+import { LogisticRegressionClassifier } from 'natural'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
@@ -16,7 +16,7 @@ dotenv.config()
  * npm run train expressions
  * npm run train expressions:en
  */
-export default () => new Promise(async (resolve, reject) => {
+export default () => new Promise((resolve, reject) => {
   const { argv } = process
   const packagesDir = 'packages'
   const expressionsClassifier = 'server/src/data/expressions/classifier.json'
@@ -31,10 +31,12 @@ export default () => new Promise(async (resolve, reject) => {
 
   try {
     if (type === 'expressions') {
-      let manager = new NlpManager({ languages: ['en'] })
+      let classifier = new LogisticRegressionClassifier()
 
       if (lang !== 'en') {
-        manager = new NlpManager({ languages: lang })
+        // eslint-disable-next-line global-require, import/no-dynamic-require
+        const PorterStemmer = require(`../node_modules/natural/lib/natural/stemmers/porter_stemmer_${lang}`)
+        classifier = new LogisticRegressionClassifier(PorterStemmer)
       }
       const packages = fs.readdirSync(packagesDir)
         .filter(entity =>
@@ -50,16 +52,14 @@ export default () => new Promise(async (resolve, reject) => {
         for (let j = 0; j < modules.length; j += 1) {
           const exprs = expressions[modules[j]]
           for (let k = 0; k < exprs.length; k += 1) {
-            manager.addDocument(lang, exprs[k], `${packages[i]}:${modules[j]}`)
+            classifier.addDocument(string.removeAccents(exprs[k]), `${packages[i]}:${modules[j]}`)
           }
 
           log.success(`"${string.ucfirst(modules[j])}" module expressions trained`)
         }
       }
 
-      await manager.train()
-
-      fs.writeFile(expressionsClassifier, manager.export(true), (err) => {
+      classifier.save(expressionsClassifier, (err) => {
         if (err) {
           log.error(`Failed to save the classifier: ${err}`)
           reject()

@@ -5,7 +5,7 @@ import utils
 from datetime import datetime
 from random import randint
 
-def greeting(string, entities):
+def greeting(string):
 	"""Leon greets you"""
 
 	time = datetime.time(datetime.now())

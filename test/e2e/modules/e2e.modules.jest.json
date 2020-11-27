@@ -8,7 +8,6 @@
     "<rootDir>/packages/**/*.spec.js"
   ],
   "setupFiles": [
-    "jest-canvas-mock",
     "<rootDir>/test/paths.setup.js"
   ],
   "setupFilesAfterEnv": [

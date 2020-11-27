@@ -3,7 +3,8 @@ WORKDIR /app
 COPY . .
 
 # Install system packages
-RUN apk add --no-cache \
+RUN apk update --no-cache \
+  && apk add --no-cache \
     ca-certificates \
     build-base \
     python3 \

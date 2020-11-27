@@ -160,12 +160,12 @@ class Server {
           }
 
           // Listen for new query
-          socket.on('query', async (data) => {
+          socket.on('query', (data) => {
             log.title('Socket')
             log.info(`${data.client} emitted: ${data.value}`)
 
             socket.emit('is-typing', true)
-            await nlu.process(data.value)
+            nlu.process(data.value)
           })
 
           // Handle automatic speech recognition
